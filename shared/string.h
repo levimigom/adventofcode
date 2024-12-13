@@ -49,6 +49,8 @@ String *string_read_line(){
 		string_append(s, c);
 	} while((c = getchar()) != '\n' && c != EOF);
 
+	string_append(s, '\0');
+
 	return s;
 }
 
@@ -61,6 +63,18 @@ char *string_get_characters(String *s){
 	}
 
 	return c;
+}
+
+int string_length(String *s){
+	int length = 0;
+	char *c = s->characters;
+
+	while(*c){
+		length++;
+		c++;
+	}
+
+	return length;
 }
 
 #endif
