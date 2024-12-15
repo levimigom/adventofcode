@@ -8,7 +8,7 @@
 
 void Main()
 {
-	//RunTests();  // Call RunTests() or press Alt+Shift+T to initiate testing.
+	Solution.Solve(File.ReadAllLines("input.txt")).Dump();
 }
 
 public static class Solution {
@@ -16,13 +16,7 @@ public static class Solution {
 		Dictionary<int, Rule> rules = ParseRules(lines.Where(l => l.Contains("|")).ToArray());
 		List<int[]> pages = ParsePages(lines.Where(l => l != "" && !l.Contains("|")).ToArray());
 		
-		foreach(var page in pages){
-			if(ValidatePage(page, rules)){
-				page.Dump();
-			}
-		}
-		
-		return 0;
+		return pages.Where(page => ValidatePage(page, rules)).Select(page => page[page.Length / 2]).Sum();
 	}
 	
 	private static bool ValidatePage(int[] page, Dictionary<int, Rule> rules){
