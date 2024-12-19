@@ -21,53 +21,112 @@ bool **create_visited_arr(int rows, int cols){
 	return visited;
 }
 
+bool ***create_perimeter_arr(int rows, int cols){
+	bool ***perimeter = calloc(sizeof(bool**), DIRECTIONS);
+	int i;
+
+	for(i = 0; i < DIRECTIONS; i++){
+		perimeter[i] = create_visited_arr(rows, cols);
+	}
+
+	return perimeter;
+}
+
+void free_perimeter_arr(bool ***perimeter, int rows){
+	int i;
+
+	for(i = 0; i < DIRECTIONS; i++){
+		free_2d_arr((void **) perimeter[i], rows);
+	}
+	free(perimeter);
+}
+
 bool is_within_bounds(int rows, int cols, int row, int col){
 	return(0 <= row && row < rows && 0 <= col && col < cols);
 }
 
-bool check_side(char **garden, int rows, int cols, int row, int col, int move_direction, int side_direction, bool **visited){
-	bool is_side = false;
-	int neighbour_row, neighbour_col, side_row, side_col;
+void dfs_region(char **garden, int rows, int cols, int row, int col, bool **visited, int *area, bool ***perimeter){
+	int i, neighbour_row, neighbour_col;
 
-	while(is_within_bounds(rows, cols, row, col) && !visited[row][col]){
-		visited[row][col] = true;
+	visited[row][col] = true;
+	*area += 1;
 
-		side_row = row + row_directions[side_direction];
-		side_col = col + col_directions[side_direction];
+	for(i = 0; i < DIRECTIONS; i++){
+		neighbour_row = row + row_directions[i];
+		neighbour_col = col + col_directions[i];
 
-		if(is_within_bounds(rows, cols, side_row, side_col) && garden[row][col] == garden[side_row][side_col]){
-			return is_side;
+		if(is_within_bounds(rows, cols, neighbour_row, neighbour_col)){
+			if(garden[row][col] == garden[neighbour_row][neighbour_col] && !visited[neighbour_row][neighbour_col]){
+				dfs_region(garden, rows, cols, neighbour_row, neighbour_col, visited, area, perimeter);
+			}
+
+			if(garden[row][col] != garden[neighbour_row][neighbour_col]){
+				perimeter[i][row][col] = true;
+			}	
+		} else {
+			perimeter[i][row][col] = true;
 		}
+	}
+}
 
-		is_side = true;
+int count_sides(int rows, int cols, bool **perimeter, int direction){
+	int row, col, neighbour_row, neighbour_col, sides;
+	bool **visited = create_visited_arr(rows, cols);
 
-		neighbour_row = row + row_directions[neighbour_direction];
-		neighbour_col = col + col_directions[neighbour_direction];
+	sides = 0;
+	for(row = 0; row < rows; row++){
+		for(col = 0; col < cols; col++){
+			if(perimeter[row][col] && !visited[row][col]){
+				sides++;
 
-		if(is_within_bounds(rows, cols, neighbour_row, neighbour_col) && garden[row][col] != garden[neighbour_row][neighbour_col]){
-			return is_side;
+				visited[row][col] = true;
+
+				neighbour_row = row + row_directions[direction];
+				neighbour_col = col + col_directions[direction];
+
+				while(is_within_bounds(rows, cols, neighbour_row, neighbour_col) 
+						&& perimeter[neighbour_row][neighbour_col]){
+					visited[neighbour_row][neighbour_col] = true;
+
+					neighbour_row += row_directions[direction];
+					neighbour_col += col_directions[direction];
+				}
+			}	
 		}
 	}
 
-	return is_side;
-}
+	free_2d_arr((void**) visited, rows);
 
-void dfs_region(char **garden, int rows, int cols, int row, int col, bool **visited, int *area, int *sides){
-	
+	return sides;
 }
 
 void solve(char **garden, int rows, int cols){
-	int i, j, area, perimeter, total_price;
+	int i, j, area, sides, total_price;
 	bool **visited = create_visited_arr(rows, cols);
 	
 	total_price = 0;
 	for(i = 0; i < rows; i++){
 		for(j = 0; j < cols; j++){
 			if(!visited[i][j]){
-				area = perimeter = 0;
+				bool ***perimeter = create_perimeter_arr(rows, cols);
+				area = 0;
 
-				dfs_region(garden, rows, cols, i, j, visited, &area, &perimeter);
-				total_price += area * perimeter;
+				dfs_region(garden, rows, cols, i, j, visited, &area, perimeter);
+
+				sides = 0;
+				
+				// down
+				sides += count_sides(rows, cols, perimeter[0], 2);
+				// up
+				sides += count_sides(rows, cols, perimeter[1], 2);
+				// right
+				sides += count_sides(rows, cols, perimeter[2], 0);
+				// left
+				sides += count_sides(rows, cols, perimeter[3], 0);
+				
+				total_price += area * sides;
+
+				free_perimeter_arr(perimeter, rows);
 			}
 		}
 	}
